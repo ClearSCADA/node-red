@@ -1,0 +1,337 @@
+<!--
+
+node-red-contrib-ClearSCADA
+
+ToClearSCADA
+Send point data into ClearSCADA using its web service port.
+Data is sent into analogue, digital and string Internal Points.
+Supports value and time stamp.
+Does not support: Time points
+
+FromClearSCADA
+Get object summary data from ClearSCADA using its web service port.
+
+QryClearSCADA
+Get tabular SQL query data from ClearSCADA using its web service port.
+
+User credentials are supported.
+
+For experimental and non-critical use only.
+
+The MIT License (MIT)
+
+Copyright (c) 2018 Schneider Electric
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Steve Beadle, stephen.beadle@schneider-electric.com
+-->
+
+<!-- This creates and configures the onscreen elements of the ClearSCADA Server node  -->
+<script type="text/javascript">
+    RED.nodes.registerType('ClearSCADA-server',{
+        category: 'config',
+        defaults: {
+			name: {value:''},
+            hostname: {value:'', required:false},
+            port: {value:80, required:false},
+			usehttps: {value: false}
+        },
+
+<!-- Support authentication. If username is blank, requires 'Control' privilege on web Guest or Everyone account of ClearSCADA. -->
+        credentials: {
+            user: {type:"text"},
+            password: {type:"password"}
+        },
+
+		label: function() { 
+			var h = this.hostname?this.hostname:'localhost';
+			var p = this.port?this.port:'80';
+			var s = this.usehttps?'https':'http';
+			return (s + '://' + h + ':' + p);
+		}
+    });
+</script>
+
+<script type="text/x-red" data-template-name="ClearSCADA-server">
+    <div class="form-row">
+        <label for="node-config-input-hostname"><i class="icon-bookmark"></i> Host Name</label>
+        <input type="text" id="node-config-input-hostname">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-port"><i class="icon-bookmark"></i> Port</label>
+        <input type="text" id="node-config-input-port">
+    </div>
+    <div class="form-row">
+	    <label>&nbsp;</label>
+		<input type="checkbox" style="display: inline-block; width: auto; vertical-align: top;" id="node-config-input-usehttps">
+        <label style="width: 70%;" for="node-config-input-usehttps"><span>Use HTTPS?</span></label>
+    </div>
+	<div class="form-row">
+		<label for="node-config-input-user"><i class="fa fa-user"></i> <span data-i18n="common.label.username"></span></label>
+		<input type="text" id="node-config-input-user">
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-password"><i class="fa fa-lock"></i> <span data-i18n="common.label.password"></span></label>
+		<input type="password" id="node-config-input-password">
+	</div>
+</script>
+
+<!-- This creates and configures the onscreen elements of the ToClearSCADA node  -->
+<!-- First, the content of the edit dialog is defined.                       -->
+<script type="text/x-red" data-template-name="ToClearSCADA">
+   <!-- data-template-name identifies the node type this is for              -->
+
+   <!-- Each of the following divs creates a field in the edit dialog.       -->
+   <!-- Generally, there should be an input for each property of the node.   -->
+   <!-- The for and id attributes identify the corresponding property        -->
+   <!-- (with the 'node-input-' prefix).                                     -->
+   <!-- The available icon classes are defined Font Awesome Icons (FA Icons) -->
+
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-bookmark"></i> Server</label>
+        <input type="text" id="node-input-server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-topic"><i class="fa fa-tasks"></i> Point Full Name (optional)</label>
+        <input type="text" id="node-input-topic" placeholder="Point Name">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-pointtype"><i class="fa fa-tasks"></i> Point Type</label>
+        <select type="text" id="node-input-pointtype" placeholder="Point Type">
+		<option value="0">Analogue</option>
+		<option value="1">Digital</option>
+		<option value="2">String</option>
+		</select>
+    </div>
+
+    <br/>
+    <!-- By convention, most nodes have a 'name' property. The following div -->
+    <!-- provides the necessary field. Should always be the last option      -->
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+	
+</script>
+
+
+<!-- Next, some simple help text is provided for the node.                   -->
+<script type="text/x-red" data-help-name="ToClearSCADA">
+   <!-- data-help-name identifies the node type this help is for             -->
+   <!-- This content appears in the Info sidebar when a node is selected     -->
+   <!-- The first <p> is used as the pop-up tool tip when hovering over a    -->
+   <!-- node in the palette.                                                 -->
+   <p>Simple ClearSCADA Point value output node. Writes the current value and time of a point.</p>
+   <p>Requires an object called <code>msg</code> containing <code>msg.topic</code> and
+   <code>msg.payload</code>. 
+   </p>
+   <p>msg.topic is the point full name. (Leave empty to use the configured name).
+   </p>
+   <p>msg.payload is the data to be sent to the point. 
+   Also msg.time can be used to preset the time associated with the data.
+   This is a UTC time to millisecond resolution.
+   </p>
+   <p>Returns: HTTP status code as msg.payload. e.g. 200 is OK.
+   </p>
+</script>
+
+<!-- Finally, the node type is registered along with all of its properties   -->
+<!-- The example below shows a small subset of the properties that can be set-->
+<script type="text/javascript">
+    RED.nodes.registerType('ToClearSCADA',{
+        category: 'ClearSCADA',    // the palette category
+		color:"#3DCD58",
+        defaults: {             // defines the editable properties of the node
+			server: {value:"", type:"ClearSCADA-server"},
+            topic: {value:""},  //  removed // , required:true
+			pointtype: {value:0},
+            name: {value:""}    //  along with default values.
+		},
+        inputs:1,               // set the number of inputs - only 0 or 1
+        outputs:1,              // set the number of outputs - 0 to n
+								// propose to send success/fail message as output
+        // set the icon (held in icons dir below where you save the node)
+        icon: "clearscada.png",     // saved in  icons/myicon.png
+        label: function() {     // sets the default label contents
+            return this.name||this.topic||"ToClearSCADA";
+        },
+        labelStyle: function() { // sets the class to apply to the label
+            return this.name?"node_label_italic":"";
+        },
+		align: 'right'		     // Both in and out, but primarily out
+    });
+</script>
+
+<!-- This creates and configures the onscreen elements of the FromClearSCADA node  -->
+<!-- First, the content of the edit dialog is defined.                       -->
+<script type="text/x-red" data-template-name="FromClearSCADA">
+   <!-- data-template-name identifies the node type this is for              -->
+
+   <!-- Each of the following divs creates a field in the edit dialog.       -->
+   <!-- Generally, there should be an input for each property of the node.   -->
+   <!-- The for and id attributes identify the corresponding property        -->
+   <!-- (with the 'node-input-' prefix).                                     -->
+   <!-- The available icon classes are defined Font Awesome Icons (FA Icons) -->
+
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-bookmark"></i> Server</label>
+        <input type="text" id="node-input-server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-topic"><i class="fa fa-tasks"></i> Object Full Name (optional)</label>
+        <input type="text" id="node-input-topic" placeholder="Object Name">
+    </div>
+
+    <br/>
+    <!-- By convention, most nodes have a 'name' property. The following div -->
+    <!-- provides the necessary field. Should always be the last option      -->
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+	
+</script>
+
+
+<!-- Next, some simple help text is provided for the node.                   -->
+<script type="text/x-red" data-help-name="FromClearSCADA">
+   <!-- data-help-name identifies the node type this help is for             -->
+   <!-- This content appears in the Info sidebar when a node is selected     -->
+   <!-- The first <p> is used as the pop-up tool tip when hovering over a    -->
+   <!-- node in the palette.                                                 -->
+   <p>Simple ClearSCADA Object value input node. Reads status data.</p>
+   <p>Requires an object called <code>msg</code> containing <code>msg.topic</code> which is 
+   the object name and output is <code>msg.payload</code>. 
+   </p>
+   <p>msg.topic is the object full name. (Leave empty to use the configured name).
+   </p>
+   <p>msg.payload is the data. 
+   </p>
+   <p>Returns: Array of attributes, or number if not successful as HTTP status (e.g. 404).
+   Use msg.payload["Current Value"] to read a point value. All results are strings.
+   Times are strings in ClearSCADA user's time zone and offset. 
+   </p>
+</script>
+
+<!-- Finally, the node type is registered along with all of its properties   -->
+<!-- The example below shows a small subset of the properties that can be set-->
+<script type="text/javascript">
+    RED.nodes.registerType('FromClearSCADA',{
+        category: 'ClearSCADA',    // the palette category
+		color:"#3DCD58",
+        defaults: {             // defines the editable properties of the node
+			server: {value:"", type:"ClearSCADA-server"},
+            topic: {value:""},  //  removed // , required:true
+            name: {value:""}    //  along with default values.
+		},
+        inputs:1,               // set the number of inputs - only 0 or 1
+        outputs:1,              // set the number of outputs - 0 to n
+								// propose to send success/fail message as output
+        // set the icon (held in icons dir below where you save the node)
+        icon: "clearscada.png",     // saved in  icons/myicon.png
+        label: function() {     // sets the default label contents
+            return this.name||this.topic||"FromClearSCADA";
+        },
+        labelStyle: function() { // sets the class to apply to the label
+            return this.name?"node_label_italic":"";
+        },
+		align: 'left'		     // Both in and out, but primarily out
+    });
+</script>
+
+<!-- This creates and configures the onscreen elements of the QryClearSCADA node  -->
+<!-- First, the content of the edit dialog is defined.                       -->
+<script type="text/x-red" data-template-name="QryClearSCADA">
+   <!-- data-template-name identifies the node type this is for              -->
+
+   <!-- Each of the following divs creates a field in the edit dialog.       -->
+   <!-- Generally, there should be an input for each property of the node.   -->
+   <!-- The for and id attributes identify the corresponding property        -->
+   <!-- (with the 'node-input-' prefix).                                     -->
+   <!-- The available icon classes are defined Font Awesome Icons (FA Icons) -->
+
+    <div class="form-row">
+        <label for="node-input-server"><i class="icon-bookmark"></i> Server</label>
+        <input type="text" id="node-input-server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-topic"><i class="fa fa-tasks"></i> SQL Query (optional)</label>
+        <input type="text" id="node-input-topic" placeholder="Object Name">
+    </div>
+
+    <br/>
+    <!-- By convention, most nodes have a 'name' property. The following div -->
+    <!-- provides the necessary field. Should always be the last option      -->
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+	
+</script>
+
+
+<!-- Next, some simple help text is provided for the node.                   -->
+<script type="text/x-red" data-help-name="QryClearSCADA">
+   <!-- data-help-name identifies the node type this help is for             -->
+   <!-- This content appears in the Info sidebar when a node is selected     -->
+   <!-- The first <p> is used as the pop-up tool tip when hovering over a    -->
+   <!-- node in the palette.                                                 -->
+   <p>Simple ClearSCADA SQL Query input node. Reads query tabular data.</p>
+   <p>Requires an object called <code>msg</code> containing <code>msg.topic</code> which is 
+   the SQL query text and output is <code>msg.payload</code>. 
+   </p>
+   <p>msg.topic is the query SQL. (Leave empty to use the configured SQL).
+   </p>
+   <p>msg.payload is the output data. 
+   </p>
+   <p>Returns: payload array of data, or number if not successful as HTTP status (e.g. 404).
+   Times are strings in ClearSCADA user's time zone and offset.
+   </p>
+</script>
+
+<!-- Finally, the node type is registered along with all of its properties   -->
+<!-- The example below shows a small subset of the properties that can be set-->
+<script type="text/javascript">
+    RED.nodes.registerType('QryClearSCADA',{
+        category: 'ClearSCADA',    // the palette category
+		color:"#3DCD58",
+        defaults: {             // defines the editable properties of the node
+			server: {value:"", type:"ClearSCADA-server"},
+            topic: {value:""},  //  removed // , required:true
+            name: {value:""}    //  along with default values.
+		},
+        inputs:1,               // set the number of inputs - only 0 or 1
+        outputs:1,              // set the number of outputs - 0 to n
+								// propose to send success/fail message as output
+        // set the icon (held in icons dir below where you save the node)
+        icon: "clearscada.png",     // saved in  icons/myicon.png
+        label: function() {     // sets the default label contents
+            return this.name||this.topic||"QryClearSCADA";
+        },
+        labelStyle: function() { // sets the class to apply to the label
+            return this.name?"node_label_italic":"";
+        },
+		align: 'left'		     // Both in and out, but primarily out
+    });
+</script>
