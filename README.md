@@ -6,6 +6,8 @@ A <a href="http://nodered.org" target="_new">Node-RED</a> node to send/receive t
 Install
 -------
 
+Note - the following install will not work until the node has been contributed. Until then please follow the instructions in the Word file in this repository.
+
 Run the following command in your Node-RED user directory - typically `~/.node-red`
 
     npm install node-red-contrib-ClearSCADA
