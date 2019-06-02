@@ -10,7 +10,7 @@
         "nodes": {
             "ClearSCADA": "ClearSCADA/ClearSCADA.js"
         }
-    }
+    },
 	"author": {
         "name": "Stephen Beadle",
         "email": "stephen.beadle@schneider-electric.com"
