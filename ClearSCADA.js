@@ -592,10 +592,17 @@ module.exports = function(RED) {
 			}
 			// console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
 			res.setEncoding('utf8');
-		  
+			var allchunks = ""
+
 			res.on('data', (chunk) => {
 				// console.log(`BODY: ${chunk}`);
-				xmlparser(chunk, function (err, result) {
+				// var chunk = chunk.toString().replace("\ufeff", "");
+				allchunks = allchunks + chunk;
+			});
+
+			res.on('end', () => {
+				console.log('Get Value Response complete.');
+				xmlparser(allchunks, function (err, result) {
 					if (err != null) {
 						msg.payload = err;
 					} else {
@@ -618,10 +625,6 @@ module.exports = function(RED) {
 						// console.log( msg.payload);
 					}
 				});
-			});
-
-			res.on('end', () => {
-				console.log('Get Value Response complete.');
 				node.send(msg);
 			})
 		});
@@ -739,13 +742,19 @@ module.exports = function(RED) {
 			}
 			// console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
 			res.setEncoding('utf8');
-		  
+		    var allchunks = ""
 			res.on('data', (chunk) => {
 				// console.log(`BODY: ${chunk}`);
+				allchunks = allchunks + chunk;
+			});
+
+			res.on('end', () => {
+				console.log('Query Response complete.');
 				try {
-					xmlparser(chunk, function (err, result) {
+					xmlparser(allchunks, function (err, result) {
 						if (err != null) {
 							msg.payload = err;
+							// console.log(`******************************************************************`);
 						} else {
 							//Could be an invalid query
 							try {
@@ -784,10 +793,6 @@ module.exports = function(RED) {
 				} catch (err) {
 					// Likely a shutting down server - ignore.
 				}
-			});
-
-			res.on('end', () => {
-				console.log('Query Response complete.');
 				node.send(msg);
 			})
 		});
