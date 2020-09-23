@@ -12,6 +12,7 @@ Note - Interfaces with ClearSCADA on localhost port 80. The points to be modifie
 20/6/18 Add login, read data and read query functionality
 26/9/18 Error check around receiving malformed xml - ignore silently
 31/5/19 Fix chunk error truncating larger queries
+23/9/20 Fix path in package.json and adjust guide document
 
 TODO
 -
